@@ -25,17 +25,31 @@ if [ ${#mkv_files[@]} -eq 0 ]; then
     exit 1
 fi
 
+# Pergunta ao usuário qual conversão deseja
+echo "Qual conversão você deseja realizar?"
+echo "1: MP4 (AV1 + PCM)"
+echo "2: MOV (DNxHR HQ + ALAC)"
+read -p "Digite o número da conversão desejada (1 ou 2): " conversion_choice
+
 # Loop através dos arquivos MKV no diretório
 for input_file in "${mkv_files[@]}"; do
     filename=$(basename "$input_file" .mkv)
-    output_file="$output_dir/${filename}.mov"
 
-    # Executa o FFmpeg para converter o vídeo
-    ffmpeg -i "$input_file" -c:v dnxhd -profile:v dnxhr_hq -c:a alac "$output_file"
+    if [ "$conversion_choice" == "1" ]; then
+        # Conversão para MP4 (AV1) com áudio PCM
+        output_file="$output_dir/${filename}.mp4"
+        ffmpeg -i "$input_file" -c:v libaom-av1 -b:v 0 -cpu-used 4 -threads 8 -c:a pcm_s16le "$output_file"
+    elif [ "$conversion_choice" == "2" ]; then
+        # Conversão para MOV (DNxHR HQ) com áudio ALAC
+        output_file="$output_dir/${filename}.mov"
+        ffmpeg -i "$input_file" -c:v dnxhd -profile:v dnxhr_hq -c:a alac "$output_file"
+    else
+        echo "Escolha inválida. Por favor, execute o script novamente e escolha 1 ou 2."
+        exit 1
+    fi
 
     if [ $? -eq 0 ]; then
         echo "Convertido: $input_file -> $output_file"
-        # Move o arquivo MKV original para o diretório Old_Videos
         mv "$input_file" "$old_videos_dir/"
         echo "Movido: $input_file -> $old_videos_dir/"
     else
